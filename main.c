@@ -4,7 +4,8 @@
 #define TILE_SIZE 32
 #define GRID_WIDTH 512
 #define GRID_HEIGHT 512
-#define ANIMATION_STEPS 50
+#define ANIMATION_STEPS 10
+#define FRAME_TIME_MS 16
 
 int windowWidth = GRID_WIDTH;
 int windowHeight = GRID_HEIGHT;
@@ -17,8 +18,12 @@ typedef struct Coord2D {
 Coord2D player_position = {0, 0};
 Coord2D player_direction = {0, 0};
 
+// ANIMATION
 int animating = 0;
 int animation_counter = 1;
+
+// MEASURES
+int last_frame_ms = 0;
 
 void drawGrid() {
     glColor3f(1.0f, 1.0f, 1.0f);
@@ -63,11 +68,23 @@ void drawPlayer() {
 	        glVertex2i(x, y + TILE_SIZE);
   		glEnd();
    	}
-   	glutPostRedisplay();
-
 }
 
+void showFPS() {
+    int current_frame_ms = glutGet(GLUT_ELAPSED_TIME);
+    float delta = (current_frame_ms - last_frame_ms) / 1000.0f;
+    last_frame_ms = current_frame_ms;
+    if (delta > 0.0f) {
+    	char title[64];
+    	sprintf(title, "Animated Nethack - FPS: %.1f", 1.0f / delta);
+    	glutSetWindowTitle(title);
+    }
+}
+
+
 void display() {
+	showFPS();
+
     glClear(GL_COLOR_BUFFER_BIT);
     glLoadIdentity();
 
@@ -90,8 +107,6 @@ void reshape(int w, int h) {
     gluOrtho2D(0, w, 0, h);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-
-    glutPostRedisplay();
 }
 
 void take_input(int key, int x, int y) {
@@ -114,7 +129,11 @@ void take_input(int key, int x, int y) {
 			break;
 	}
 	animating = 1;
-	glutPostRedisplay();
+}
+
+void timer(int value) {
+    glutPostRedisplay();
+    glutTimerFunc(FRAME_TIME_MS, timer, 0);
 }
 
 int main(int argc, char** argv) {
@@ -128,7 +147,9 @@ int main(int argc, char** argv) {
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
     glutSpecialFunc(take_input);
-
+    glutTimerFunc(FRAME_TIME_MS, timer, 0);
+    
     glutMainLoop();
     return 0;
 }
+
