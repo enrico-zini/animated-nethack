@@ -15,9 +15,13 @@ typedef struct Coord2D {
 	float y;
 } Coord2D;
 
-Coord2D player_original_position = {0, 0};
-Coord2D player_position = {0, 0};
-Coord2D player_direction = {0, 0};
+typedef struct Player {
+	Coord2D pos;
+	Coord2D start;
+	Coord2D dir;
+} Player;
+
+Player player = {{0, 0}, {0, 0}, {0, 0}};
 
 // ANIMATION
 int animation_counter = ANIMATION_STEPS;
@@ -40,22 +44,22 @@ void drawGrid() {
 }
 
 void animatePlayer() {
-	player_position.x = player_original_position.x + (player_direction.x * animation_counter/ANIMATION_STEPS);
-	player_position.y = player_original_position.y + (player_direction.y * animation_counter/ANIMATION_STEPS);
+	player.pos.x = player.start.x + (player.dir.x * animation_counter/ANIMATION_STEPS);
+	player.pos.y = player.start.y + (player.dir.y * animation_counter/ANIMATION_STEPS);
 	animation_counter++;
 	if (animation_counter == ANIMATION_STEPS) { // ANIMATION END
-		player_original_position.x += player_direction.x;
-		player_original_position.y += player_direction.y;
+		player.start.x += player.dir.x;
+		player.start.y += player.dir.y;
 
-		player_position.x = player_original_position.x;
-		player_position.y = player_original_position.y;
+		player.pos.x = player.start.x;
+		player.pos.y = player.start.y;
 	}
 }
 
 void drawPlayer() {
     glColor3f(1.0f, 1.0f, 1.0f);
-    float x = player_position.x * TILE_SIZE;
-    float y = player_position.y * TILE_SIZE;
+    float x = player.pos.x * TILE_SIZE;
+    float y = player.pos.y * TILE_SIZE;
 	glBegin(GL_QUADS);
 		glVertex2i(x, y);
 		glVertex2i(x + TILE_SIZE, y);
@@ -111,24 +115,27 @@ void take_input(int key, int x, int y) {
 	if (animation_counter > 0 && animation_counter < ANIMATION_STEPS) {
 		return; // IN THE MIDDLE OF ANIMATION
 	}
-	switch (key) {
-		case GLUT_KEY_UP: 
-			player_direction.x = 0.0f;
-			player_direction.y = 1.0f;
-			break;
-		case GLUT_KEY_DOWN:
-			player_direction.x = 0.0f;
-			player_direction.y = -1.0f;		
-			break;
-		case GLUT_KEY_LEFT:
-			player_direction.x = -1.0f;
-			player_direction.y = 0.0f;		
-			break;
-		case GLUT_KEY_RIGHT:
-			player_direction.x = 1.0f;
-			player_direction.y = 0.0f;
-			break;
-	}
+	
+    switch (key) {
+        case GLUT_KEY_UP:
+            player.dir.x = 0.0f;
+            player.dir.y = 1.0f;
+            break;
+        case GLUT_KEY_DOWN:
+            player.dir.x = 0.0f;
+            player.dir.y = -1.0f;
+            break;
+        case GLUT_KEY_LEFT:
+            player.dir.x = -1.0f;
+            player.dir.y = 0.0f;
+            break;
+        case GLUT_KEY_RIGHT:
+            player.dir.x = 1.0f;
+            player.dir.y = 0.0f;
+            break;
+        default:
+            return;
+    }
 	animation_counter = 0; // ANIMATION START
 }
 
