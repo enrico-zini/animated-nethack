@@ -7,6 +7,10 @@
 #define ANIMATION_STEPS 10
 #define FRAME_TIME_MS 16
 
+// COLORS
+#define WHITE 1.0f, 1.0f, 1.0f
+#define BLACK 0.0f, 0.0f, 0.0f
+
 int windowWidth = GRID_WIDTH;
 int windowHeight = GRID_HEIGHT;
 
@@ -30,7 +34,7 @@ int animation_counter = ANIMATION_STEPS;
 int last_frame_ms = 0;
 
 void drawGrid() {
-    glColor3f(1.0f, 1.0f, 1.0f);
+    glColor3f(WHITE);
     glBegin(GL_LINES);
 	    for (int x = 0; x <= GRID_WIDTH; x += TILE_SIZE) {
 	        glVertex2i(x, 0);
@@ -57,7 +61,7 @@ void animatePlayer() {
 }
 
 void drawPlayer() {
-    glColor3f(1.0f, 1.0f, 1.0f);
+    glColor3f(WHITE);
     float x = player.pos.x * TILE_SIZE;
     float y = player.pos.y * TILE_SIZE;
 	glBegin(GL_QUADS);
@@ -150,7 +154,7 @@ int main(int argc, char** argv) {
     glutInitWindowSize(windowWidth, windowHeight);
     glutCreateWindow("Animated Nethack");
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(BLACK, 1.0f);
 
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
