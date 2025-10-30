@@ -25,21 +25,23 @@ typedef struct {
 } Vector2i;
 
 typedef struct {
-	Vector2f global_pos;
+	Vector2f current_pos;
 	Vector2i tile_pos;
 	Vector2i dir;
 } Movable;
 
 typedef struct {
 	Movable mov;
-	Vector2i path[9];
+	Vector2i path[8];
+	size_t current_path_idx;
 } Npc;
 
 Npc npc = {
-    .mov = {{0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}},
+    .mov = {{10.0f, 10.0f}, {10, 10}, {0, 0}},
     .path = {
-    	{10, 10}, {11, 10}, {12, 10}, {12, 9}, {12, 8}, {11, 8}, {10, 8}, {10, 9}, {10, 10} 
-    }
+    	{10, 10}, {11, 10}, {12, 10}, {12, 9}, {12, 8}, {11, 8}, {10, 8}, {10, 9}
+    },
+    .current_path_idx = 0
 };
 
 Movable player = {{0.0f, 0.0f}, {0, 0}, {0, 0}};
@@ -64,23 +66,34 @@ void drawGrid() {
     glEnd();
 }
 
-void animatePlayer() {
-	player.global_pos.x = (player.tile_pos.x + (float)player.dir.x * animation_counter/ANIMATION_STEPS) * TILE_SIZE;
-	player.global_pos.y = (player.tile_pos.y + (float)player.dir.y * animation_counter/ANIMATION_STEPS) * TILE_SIZE;
+void animate() {
+	player.current_pos.x = (player.tile_pos.x + (float)player.dir.x * animation_counter/ANIMATION_STEPS);
+	player.current_pos.y = (player.tile_pos.y + (float)player.dir.y * animation_counter/ANIMATION_STEPS);
+
+	npc.mov.current_pos.x = (npc.mov.tile_pos.x + (float)npc.mov.dir.x * animation_counter/ANIMATION_STEPS);
+	npc.mov.current_pos.y = (npc.mov.tile_pos.y + (float)npc.mov.dir.y * animation_counter/ANIMATION_STEPS);
 	animation_counter++;
 	if (animation_counter == ANIMATION_STEPS) { // ANIMATION END
 		player.tile_pos.x += player.dir.x;
 		player.tile_pos.y += player.dir.y;
 
-		player.global_pos.x = player.tile_pos.x * TILE_SIZE;
-		player.global_pos.y = player.tile_pos.y * TILE_SIZE;
+		player.current_pos.x = player.tile_pos.x;
+		player.current_pos.y = player.tile_pos.y;
+		
+		npc.mov.tile_pos.x += npc.mov.dir.x;
+		npc.mov.tile_pos.y += npc.mov.dir.y;
+
+		npc.mov.current_pos.x = npc.mov.tile_pos.x;
+		npc.mov.current_pos.y = npc.mov.tile_pos.y;
+
+		npc.current_path_idx = (npc.current_path_idx + 1) % 8;
 	}
 }
 
-void drawPlayer() {
+void drawTile(Vector2f *v) {
     glColor3f(WHITE);
-    float x = player.global_pos.x;
-    float y = player.global_pos.y;
+    float x = v->x * TILE_SIZE;
+    float y = v->y * TILE_SIZE;
 	glBegin(GL_QUADS);
 		glVertex2i(x, y);
 		glVertex2i(x + TILE_SIZE, y);
@@ -111,10 +124,11 @@ void display() {
     drawGrid();
 
     if (animation_counter < ANIMATION_STEPS) {
-    	animatePlayer();
+    	animate();
     }
     
-    drawPlayer();
+    drawTile(&player.current_pos);
+    drawTile(&npc.mov.current_pos);
 
     glutSwapBuffers();
 }
@@ -130,6 +144,16 @@ void reshape(int w, int h) {
     gluOrtho2D(0, w, 0, h);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
+}
+
+void normalize(Vector2i *v) {
+    if (v->x > 0) v->x = 1;
+    else if (v->x < 0) v->x = -1;
+    else v->x = 0;
+
+    if (v->y > 0) v->y = 1;
+    else if (v->y < 0) v->y = -1;
+    else v->y = 0;
 }
 
 void take_input(int key, int x, int y) {
@@ -157,6 +181,12 @@ void take_input(int key, int x, int y) {
         default:
             return;
     }
+    Vector2i dir = {
+    	npc.path[npc.current_path_idx].x - npc.mov.tile_pos.x,
+    	npc.path[npc.current_path_idx].y - npc.mov.tile_pos.y
+    };
+    normalize(&dir);
+    npc.mov.dir = dir;
 	animation_counter = 0; // ANIMATION START
 }
 
