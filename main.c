@@ -1,5 +1,7 @@
 #include <GL/glut.h>
 #include <stdio.h>
+#include "AnimationController.h"
+#include "types.h"
 
 #define TILE_SIZE 32
 #define GRID_WIDTH 512
@@ -14,26 +16,10 @@
 int windowWidth = GRID_WIDTH;
 int windowHeight = GRID_HEIGHT;
 
-typedef struct {
-	float x;
-	float y;
-} Vector2f;
-
-typedef struct {
-	int x;
-	int y;
-} Vector2i;
-
-typedef struct {
-	Vector2f current_pos;
-	Vector2i tile_pos;
-	Vector2i dir;
-} Movable;
-
-typedef struct {
-	Movable mov;
-	Vector2i path[8];
-	size_t current_path_idx;
+typedef struct { 
+	Movable mov; 
+	Vector2i path[8]; 
+	size_t current_path_idx; 
 } Npc;
 
 Npc npc = {
@@ -46,8 +32,10 @@ Npc npc = {
 
 Movable player = {{0.0f, 0.0f}, {0, 0}, {0, 0}};
 
+Movable *movables[] = {&npc.mov, &player};
+
 // ANIMATION
-int animation_counter = ANIMATION_STEPS;
+AnimationController ac;
 
 // MEASURES
 int last_frame_ms = 0;
@@ -64,30 +52,6 @@ void drawGrid() {
 	        glVertex2i(GRID_WIDTH, y);
 	    }
     glEnd();
-}
-
-void animate() {
-	player.current_pos.x = (player.tile_pos.x + (float)player.dir.x * animation_counter/ANIMATION_STEPS);
-	player.current_pos.y = (player.tile_pos.y + (float)player.dir.y * animation_counter/ANIMATION_STEPS);
-
-	npc.mov.current_pos.x = (npc.mov.tile_pos.x + (float)npc.mov.dir.x * animation_counter/ANIMATION_STEPS);
-	npc.mov.current_pos.y = (npc.mov.tile_pos.y + (float)npc.mov.dir.y * animation_counter/ANIMATION_STEPS);
-	animation_counter++;
-	if (animation_counter == ANIMATION_STEPS) { // ANIMATION END
-		player.tile_pos.x += player.dir.x;
-		player.tile_pos.y += player.dir.y;
-
-		player.current_pos.x = player.tile_pos.x;
-		player.current_pos.y = player.tile_pos.y;
-		
-		npc.mov.tile_pos.x += npc.mov.dir.x;
-		npc.mov.tile_pos.y += npc.mov.dir.y;
-
-		npc.mov.current_pos.x = npc.mov.tile_pos.x;
-		npc.mov.current_pos.y = npc.mov.tile_pos.y;
-
-		npc.current_path_idx = (npc.current_path_idx + 1) % 8;
-	}
 }
 
 void drawTile(Vector2f *v) {
@@ -123,9 +87,7 @@ void display() {
 
     drawGrid();
 
-    if (animation_counter < ANIMATION_STEPS) {
-    	animate();
-    }
+	AC_animate(&ac);    
     
     drawTile(&player.current_pos);
     drawTile(&npc.mov.current_pos);
@@ -157,37 +119,32 @@ void normalize(Vector2i *v) {
 }
 
 void take_input(int key, int x, int y) {
-	if (animation_counter > 0 && animation_counter < ANIMATION_STEPS) {
-		return; // IN THE MIDDLE OF ANIMATION
+	if (AC_isAnimating(&ac)) {
+		return;
 	}
 	
+    Vector2i player_dir = {0, 0};
     switch (key) {
-        case GLUT_KEY_UP:
-            player.dir.x = 0;
-            player.dir.y = 1;
-            break;
-        case GLUT_KEY_DOWN:
-            player.dir.x = 0;
-            player.dir.y = -1;
-            break;
-        case GLUT_KEY_LEFT:
-            player.dir.x = -1;
-            player.dir.y = 0;
-            break;
-        case GLUT_KEY_RIGHT:
-            player.dir.x = 1;
-            player.dir.y = 0;
-            break;
-        default:
-            return;
+        case GLUT_KEY_UP:    player_dir = (Vector2i){ 0,  1}; break;
+        case GLUT_KEY_DOWN:  player_dir = (Vector2i){ 0, -1}; break;
+        case GLUT_KEY_LEFT:  player_dir = (Vector2i){-1,  0}; break;
+        case GLUT_KEY_RIGHT: player_dir = (Vector2i){ 1,  0}; break;
+        default: return;
     }
-    Vector2i dir = {
+
+	// PLAYER MOVEMENT LOGIC
+    player.dir = player_dir;
+
+    // NPCS MOVEMENT LOGIC
+    npc.current_path_idx = (npc.current_path_idx + 1) % 8;
+    Vector2i npc_dir = {
     	npc.path[npc.current_path_idx].x - npc.mov.tile_pos.x,
     	npc.path[npc.current_path_idx].y - npc.mov.tile_pos.y
     };
-    normalize(&dir);
-    npc.mov.dir = dir;
-	animation_counter = 0; // ANIMATION START
+    normalize(&npc_dir);
+    npc.mov.dir = npc_dir;
+
+    AC_startAnimation(&ac);
 }
 
 void timer(int value) {
@@ -196,6 +153,8 @@ void timer(int value) {
 }
 
 int main(int argc, char** argv) {
+	ac = AC_init(ANIMATION_STEPS, movables, 2);
+
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
     glutInitWindowSize(windowWidth, windowHeight);
