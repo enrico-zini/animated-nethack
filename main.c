@@ -87,7 +87,7 @@ void display() {
 
     drawGrid();
 
-	AC_animate(&ac);    
+	AC_animate(&ac, movables, sizeof(movables)/sizeof(Movable *));    
     
     drawTile(&player.current_pos);
     drawTile(&npc.mov.current_pos);
@@ -153,7 +153,7 @@ void timer(int value) {
 }
 
 int main(int argc, char** argv) {
-	ac = AC_init(ANIMATION_STEPS, movables, 2);
+	ac = AC_init(ANIMATION_STEPS);
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
