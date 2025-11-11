@@ -77,6 +77,14 @@ void showFPS() {
     }
 }
 
+void drawScreen() {
+    drawGrid();
+    size_t movable_count = sizeof(movables)/sizeof(Movable *);
+    for (size_t i = 0; i < movable_count; i++) {
+        drawTile(&movables[i]->current_pos);
+    }
+}
+
 void display() {
 	showFPS();
 
@@ -85,12 +93,8 @@ void display() {
 
     glTranslatef((windowWidth - GRID_WIDTH) / 2.0f, (windowHeight - GRID_HEIGHT) / 2.0f, 0);
 
-    drawGrid();
-
-	AC_animate(&ac, movables, sizeof(movables)/sizeof(Movable *));    
-    
-    drawTile(&player.current_pos);
-    drawTile(&npc.mov.current_pos);
+    AC_animate(&ac, movables, sizeof(movables)/sizeof(Movable *));
+    drawScreen(); 
 
     glutSwapBuffers();
 }
@@ -122,7 +126,8 @@ void take_input(int key, int x, int y) {
 	if (AC_isAnimating(&ac)) {
 		return;
 	}
-	
+
+	// PLAYER MOVEMENT LOGIC
     Vector2i player_dir = {0, 0};
     switch (key) {
         case GLUT_KEY_UP:    player_dir = (Vector2i){ 0,  1}; break;
@@ -131,8 +136,6 @@ void take_input(int key, int x, int y) {
         case GLUT_KEY_RIGHT: player_dir = (Vector2i){ 1,  0}; break;
         default: return;
     }
-
-	// PLAYER MOVEMENT LOGIC
     player.dir = player_dir;
 
     // NPCS MOVEMENT LOGIC
