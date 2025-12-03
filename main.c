@@ -16,6 +16,10 @@
 int windowWidth = GRID_WIDTH;
 int windowHeight = GRID_HEIGHT;
 
+int gridSizeX;
+int gridSizeY;
+bool **grid;
+
 typedef struct { 
 	Movable mov; 
 	Vector2i path[8]; 
@@ -40,20 +44,6 @@ AnimationController ac;
 // MEASURES
 int last_frame_ms = 0;
 
-void drawGrid() {
-    glColor3f(WHITE);
-    glBegin(GL_LINES);
-	    for (int x = 0; x <= GRID_WIDTH; x += TILE_SIZE) {
-	        glVertex2i(x, 0);
-	        glVertex2i(x, GRID_HEIGHT);
-	    }
-	    for (int y = 0; y <= GRID_HEIGHT; y += TILE_SIZE) {
-	        glVertex2i(0, y);
-	        glVertex2i(GRID_WIDTH, y);
-	    }
-    glEnd();
-}
-
 void drawTile(Vector2f *v) {
     glColor3f(WHITE);
     float x = v->x * TILE_SIZE;
@@ -64,6 +54,28 @@ void drawTile(Vector2f *v) {
 		glVertex2i(x + TILE_SIZE, y + TILE_SIZE);
 		glVertex2i(x, y + TILE_SIZE);
 	glEnd();
+}
+
+void drawGrid() {
+    glColor3f(WHITE);
+    glBegin(GL_LINES);
+    for (int x = 0; x <= GRID_WIDTH; x += TILE_SIZE) {
+        glVertex2i(x, 0);
+        glVertex2i(x, GRID_HEIGHT);
+    }
+    for (int y = 0; y <= GRID_HEIGHT; y += TILE_SIZE) {
+        glVertex2i(0, y);
+        glVertex2i(GRID_WIDTH, y);
+    }
+    glEnd();
+    for (int i = 0; i < gridSizeX; i++) {
+        for (int j = 0; j < gridSizeY; j++) {
+            if (grid[i][j]) {
+                Vector2f v = {.x = j, .y = gridSizeY - i - 1};
+                drawTile(&v);
+            }
+        }
+    }
 }
 
 void showFPS() {
@@ -155,8 +167,45 @@ void timer(int value) {
     glutTimerFunc(FRAME_TIME_MS, timer, 0);
 }
 
+bool **init_grid_from_file(char *file_name) {
+    FILE *f = fopen(file_name, "r");
+    if (f == NULL) {
+        printf("File not found [filename = %s]\n", file_name);
+        return NULL;
+    }
+
+    int rows, columns;
+    fscanf(f, "%d,%d", &rows, &columns);
+    gridSizeX = rows;
+    gridSizeY = columns;
+
+    bool **grid = malloc(rows * sizeof(bool *));
+    for (int i = 0; i < rows; i++) {
+        grid[i] = malloc(columns * sizeof(bool));
+    }
+
+    int c;
+    while ((c = fgetc(f)) != '\n' && c != EOF);
+
+    int i = 0, j = 0;
+    while ((c = fgetc(f)) != EOF && i < rows) {
+        if (c == '0' || c == '1') {
+            grid[i][j] = (c == '1');
+            j++;
+            if (j == columns) {
+                j = 0;
+                i++;
+            }
+        }
+    }
+
+    fclose(f);
+    return grid;
+}
+
 int main(int argc, char** argv) {
 	ac = AC_init(ANIMATION_STEPS);
+    grid = init_grid_from_file("grid.txt");
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
@@ -171,5 +220,11 @@ int main(int argc, char** argv) {
     glutTimerFunc(FRAME_TIME_MS, timer, 0);
     
     glutMainLoop();
+
+    for (int i = 0; i < gridSizeX; i++) {
+        free(grid[i]);
+    }
+    free(grid);
+    
     return 0;
 }
