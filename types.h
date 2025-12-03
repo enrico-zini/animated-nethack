@@ -20,4 +20,10 @@ typedef struct {
     Vector2i dir;
 } Movable;
 
+typedef struct {
+    int rows;
+    int columns;
+    bool **grid;
+} CollisionGrid;
+
 #endif

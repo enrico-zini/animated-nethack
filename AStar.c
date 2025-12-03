@@ -1,6 +1,6 @@
 #include "AStar.h"
 
-Path AStar_getPath(bool **grid, Vector2i *from, Vector2i *to) {
+Path AStar_getPath(CollisionGrid **collision_grid, Vector2i *from, Vector2i *to) {
 
     int valid_cells = 123; // loop and count number of valid cells
 

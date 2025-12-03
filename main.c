@@ -16,9 +16,7 @@
 int windowWidth = GRID_WIDTH;
 int windowHeight = GRID_HEIGHT;
 
-int gridSizeX;
-int gridSizeY;
-bool **grid;
+CollisionGrid collision_grid;
 
 typedef struct { 
 	Movable mov; 
@@ -68,10 +66,10 @@ void drawGrid() {
         glVertex2i(GRID_WIDTH, y);
     }
     glEnd();
-    for (int i = 0; i < gridSizeX; i++) {
-        for (int j = 0; j < gridSizeY; j++) {
-            if (grid[i][j]) {
-                Vector2f v = {.x = j, .y = gridSizeY - i - 1};
+    for (int i = 0; i < collision_grid.rows; i++) {
+        for (int j = 0; j < collision_grid.columns; j++) {
+            if (collision_grid.grid[i][j]) {
+                Vector2f v = {.x = j, .y = collision_grid.columns - i - 1};
                 drawTile(&v);
             }
         }
@@ -167,18 +165,15 @@ void timer(int value) {
     glutTimerFunc(FRAME_TIME_MS, timer, 0);
 }
 
-bool **init_grid_from_file(char *file_name) {
+CollisionGrid init_grid_from_file(char *file_name) {
     FILE *f = fopen(file_name, "r");
     if (f == NULL) {
         printf("File not found [filename = %s]\n", file_name);
-        return NULL;
+        exit(EXIT_FAILURE);
     }
 
     int rows, columns;
     fscanf(f, "%d,%d", &rows, &columns);
-    gridSizeX = rows;
-    gridSizeY = columns;
-
     bool **grid = malloc(rows * sizeof(bool *));
     for (int i = 0; i < rows; i++) {
         grid[i] = malloc(columns * sizeof(bool));
@@ -200,12 +195,17 @@ bool **init_grid_from_file(char *file_name) {
     }
 
     fclose(f);
-    return grid;
+
+    return (CollisionGrid) {
+        .rows = rows,
+        .columns = columns,
+        .grid = grid
+    };
 }
 
 int main(int argc, char** argv) {
 	ac = AC_init(ANIMATION_STEPS);
-    grid = init_grid_from_file("grid.txt");
+    collision_grid = init_grid_from_file("grid.txt");
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
@@ -221,10 +221,9 @@ int main(int argc, char** argv) {
     
     glutMainLoop();
 
-    for (int i = 0; i < gridSizeX; i++) {
-        free(grid[i]);
+    for (int i = 0; i < collision_grid.rows; i++) {
+        free(collision_grid.grid[i]);
     }
-    free(grid);
     
     return 0;
 }
