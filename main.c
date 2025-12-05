@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "AnimationController.h"
 #include "types.h"
+#include "AStar.h"
 
 #define TILE_SIZE 32
 #define GRID_WIDTH 512
@@ -206,6 +207,14 @@ CollisionGrid init_grid_from_file(char *file_name) {
 int main(int argc, char** argv) {
 	ac = AC_init(ANIMATION_STEPS);
     collision_grid = init_grid_from_file("grid.txt");
+
+    Vector2i path_buf[collision_grid.rows * collision_grid.columns];
+    Path path = {
+        .count = 0,
+        .nodes = path_buf
+    };
+    AStar_getPath(&path, &collision_grid, &(Vector2i){0,0}, &(Vector2i){10,10});
+    
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);

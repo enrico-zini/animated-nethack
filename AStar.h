@@ -21,7 +21,7 @@ typedef struct {
     Cell** list;
 } Cells;
 
-Path AStar_getPath(CollisionGrid *grid, Vector2i *from, Vector2i *to);
+void AStar_getPath(Path *path, const CollisionGrid *grid, Vector2i *from, Vector2i *to);
 
 int AStar_applyManhattan(Vector2i *from, Vector2i *to);
 

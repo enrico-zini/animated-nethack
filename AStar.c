@@ -1,33 +1,66 @@
 #include "AStar.h"
 #include <stdlib.h>
+#include <limits.h>
 
 int AStar_applyManhattan(Vector2i *from, Vector2i *to) {
     return abs(to->x - from->x) + abs(to->y - from->y);
 }
 
-Path AStar_getPath(CollisionGrid *collision_grid, Vector2i *from, Vector2i *to) {
+void addToOpen(Cells *open_list, Cell *start, int rows, int columns, bool is_open[rows][columns], bool is_closed[rows][columns]) {
+    open_list->list[open_list->count++] = start;
+    is_open[start->position.y][start->position.x] = true;
+    is_closed[start->position.y][start->position.x] = false;
+}
+
+void removeFromOpen(Cells *open_list, int removed_idx, int rows, int columns,  bool is_open[rows][columns], bool is_closed[rows][columns]) {
+    Cell *removed = open_list->list[removed_idx];
+    open_list->list[removed_idx] = open_list->list[--open_list->count];
+    is_open[removed->position.y][removed->position.x] = false;
+    is_closed[removed->position.y][removed->position.x] = true;
+}
+
+int getLowestF(Cells *open_list) {
+    int min_f = INT_MAX;
+    int min_f_index = 0;
+    for (int i = 0; i < open_list->count; i++) {
+        Cell *c = open_list->list[i];
+        int f = c->g + c->h;
+        if (f < min_f) {
+            min_f = f;
+            min_f_index = i;
+        }
+    }
+    return min_f_index;
+}
+
+void reconstructPath(Path *path, Cell *target) {
+    Cell *it = target;
+    while (it->parent != NULL) {        
+        printf("%d,%d\n", it->position.x, it->position.y);
+        path->nodes[path->count++] = it->position;
+        it = it->parent;
+    }
+}
+
+void AStar_getPath(Path *path, const CollisionGrid *collision_grid, Vector2i *from, Vector2i *to) {
     const int ROWS = collision_grid->rows;
     const int COLUMNS = collision_grid->columns;
 
-    int valid_cells = 0;
-    for (int r = 0; r < ROWS; r++) {
-        for (int c = 0; c < COLUMNS; c++) {
-            if (collision_grid->grid[r][c]) valid_cells++;
-        }
-    }
-
-    Cell *open_mem[valid_cells];
+    Cell *max_open[ROWS * COLUMNS];
     Cells open_list = {
-        .size = valid_cells,
+        .size = ROWS * COLUMNS,
         .count = 0,
-        .list = open_mem
+        .list = max_open
     };
 
     bool is_closed[ROWS][COLUMNS];
-    memset(is_closed, false, sizeof(is_closed));
-
     bool is_open[ROWS][COLUMNS];
-    memset(is_open, false, sizeof(is_open));
+    for (int i = 0; i < ROWS; i++) {
+        for (int j = 0; j < COLUMNS; j++) {
+            is_closed[i][j] = false;
+            is_open[i][j] = false;
+        }
+    }
 
     // x = column
     // y = row
@@ -35,7 +68,7 @@ Path AStar_getPath(CollisionGrid *collision_grid, Vector2i *from, Vector2i *to) 
     for (int r = 0; r < ROWS; r++) {
         for (int c = 0; c < COLUMNS; c++) {
             Cell *cell = &cell_grid[r][c];
-            cell->g = __INT_MAX__;
+            cell->g = INT_MAX;
             cell->h = 0;
             cell->parent = NULL;
             cell->position = (Vector2i){c, r};
@@ -45,39 +78,20 @@ Path AStar_getPath(CollisionGrid *collision_grid, Vector2i *from, Vector2i *to) 
     Cell *start = &cell_grid[from->y][from->x];
     start->g = 0;
     start->h = AStar_applyManhattan(from, to);
-    start->parent = NULL;
-
-    open_list.list[open_list.count++] = start;
-    is_open[from->y][from->x] = true;
+    addToOpen(&open_list, start, ROWS, COLUMNS, is_open, is_closed);
 
     while (open_list.count > 0) {
 
-        int min_f = __INT_MAX__;
-        int min_f_index = 0;
-
-        for (int i = 0; i < open_list.count; i++) {
-            Cell *c = open_list.list[i];
-            int f = c->g + c->h;
-            if (f < min_f) {
-                min_f = f;
-                min_f_index = i;
-            }
-        }
-
-        Cell *current = open_list.list[min_f_index];
-
-        open_list.list[min_f_index] = open_list.list[open_list.count - 1];
-        open_list.count--;
-
+        int min_f_index = getLowestF(&open_list);
+        Cell *current = open_list.list[min_f_index];        
         int row = current->position.y;
         int col = current->position.x;
-
-        is_open[row][col] = false;
-        is_closed[row][col] = true;
-
         if (row == to->y && col == to->x) {
-            return (Path){0}; // TODO: reconstruct
+            reconstructPath(path, current);
+            return;
         }
+
+        removeFromOpen(&open_list, min_f_index, ROWS, COLUMNS, is_open, is_closed);
 
         if (row - 1 >= 0 && collision_grid->grid[row - 1][col] && !is_closed[row - 1][col]) { // NORTH
             Cell *n = &cell_grid[row - 1][col];
@@ -87,8 +101,7 @@ Path AStar_getPath(CollisionGrid *collision_grid, Vector2i *from, Vector2i *to) 
                 n->h = AStar_applyManhattan(&n->position, to);
                 n->parent = current;
                 if (!is_open[row - 1][col]) {
-                    open_list.list[open_list.count++] = n;
-                    is_open[row - 1][col] = true;
+                    addToOpen(&open_list, n, ROWS, COLUMNS, is_open, is_closed);
                 }
             }
         }
@@ -101,8 +114,7 @@ Path AStar_getPath(CollisionGrid *collision_grid, Vector2i *from, Vector2i *to) 
                 n->h = AStar_applyManhattan(&n->position, to);
                 n->parent = current;
                 if (!is_open[row + 1][col]) {
-                    open_list.list[open_list.count++] = n;
-                    is_open[row + 1][col] = true;
+                    addToOpen(&open_list, n, ROWS, COLUMNS, is_open, is_closed);
                 }
             }
         }
@@ -115,8 +127,7 @@ Path AStar_getPath(CollisionGrid *collision_grid, Vector2i *from, Vector2i *to) 
                 n->h = AStar_applyManhattan(&n->position, to);
                 n->parent = current;
                 if (!is_open[row][col - 1]) {
-                    open_list.list[open_list.count++] = n;
-                    is_open[row][col - 1] = true;
+                    addToOpen(&open_list, n, ROWS, COLUMNS, is_open, is_closed);
                 }
             }
         }
@@ -129,12 +140,10 @@ Path AStar_getPath(CollisionGrid *collision_grid, Vector2i *from, Vector2i *to) 
                 n->h = AStar_applyManhattan(&n->position, to);
                 n->parent = current;
                 if (!is_open[row][col + 1]) {
-                    open_list.list[open_list.count++] = n;
-                    is_open[row][col + 1] = true;
+                    addToOpen(&open_list, n, ROWS, COLUMNS, is_open, is_closed);
                 }
             }
         }
     }
 
-    return (Path){0};
 }
