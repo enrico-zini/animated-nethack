@@ -16,10 +16,13 @@ typedef struct {
 } Path;
 
 typedef struct {
+    int size;
     int count;
-    Cell* list;
+    Cell** list;
 } Cells;
 
-Path AStar_getPath(Vector2i **grid, Vector2i *from, Vector2i *to);
+Path AStar_getPath(CollisionGrid *grid, Vector2i *from, Vector2i *to);
+
+int AStar_applyManhattan(Vector2i *from, Vector2i *to);
 
 #endif
