@@ -183,14 +183,15 @@ CollisionGrid init_grid_from_file(char *file_name) {
     int c;
     while ((c = fgetc(f)) != '\n' && c != EOF);
 
-    int i = 0, j = 0;
-    while ((c = fgetc(f)) != EOF && i < rows) {
+    int row = 0, column = 0;
+    while ((c = fgetc(f)) != EOF && row < rows) {
         if (c == '0' || c == '1') {
-            grid[i][j] = (c == '1');
-            j++;
-            if (j == columns) {
-                j = 0;
-                i++;
+            grid[row][column] = (c == '1');
+            if (grid[row][column]) printf("Collision(x,y): %d,%d\n", column, row);
+            column++;
+            if (column == columns) {
+                column = 0;
+                row++;
             }
         }
     }
@@ -213,9 +214,15 @@ int main(int argc, char** argv) {
         .count = 0,
         .nodes = path_buf
     };
-    AStar_getPath(&path, &collision_grid, &(Vector2i){0,0}, &(Vector2i){10,10});
+    AStar_getPath(&path, &collision_grid, &(Vector2i){10,15}, &(Vector2i){4,15});
     
-
+    printf("FROM(%d,%d) TO(%d,%d)\n", 10, 15, 4, 15);
+    printf("PATH: ");
+    for (int i = 0; i < path.count; i++) {
+    	printf("[%d,%d] ", path.nodes[i].x, path.nodes[i].y);
+    }
+    printf("\n");
+    
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
     glutInitWindowSize(windowWidth, windowHeight);

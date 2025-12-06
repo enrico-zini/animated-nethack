@@ -36,9 +36,18 @@ int getLowestF(Cells *open_list) {
 void reconstructPath(Path *path, Cell *target) {
     Cell *it = target;
     while (it->parent != NULL) {        
-        printf("%d,%d\n", it->position.x, it->position.y);
         path->nodes[path->count++] = it->position;
         it = it->parent;
+    }
+
+	int start = 0;
+	int end = path->count - 1;
+    while (start < end) {
+		Vector2i tmp = path->nodes[start];
+    	path->nodes[start] = path->nodes[end];
+    	path->nodes[end] = tmp;
+    	start++;
+    	end--;
     }
 }
 
@@ -83,9 +92,10 @@ void AStar_getPath(Path *path, const CollisionGrid *collision_grid, Vector2i *fr
     while (open_list.count > 0) {
 
         int min_f_index = getLowestF(&open_list);
-        Cell *current = open_list.list[min_f_index];        
+        Cell *current = open_list.list[min_f_index];
         int row = current->position.y;
         int col = current->position.x;
+        // printf("Current: %d,%d\n", row, col);
         if (row == to->y && col == to->x) {
             reconstructPath(path, current);
             return;
@@ -93,7 +103,7 @@ void AStar_getPath(Path *path, const CollisionGrid *collision_grid, Vector2i *fr
 
         removeFromOpen(&open_list, min_f_index, ROWS, COLUMNS, is_open, is_closed);
 
-        if (row - 1 >= 0 && collision_grid->grid[row - 1][col] && !is_closed[row - 1][col]) { // NORTH
+        if (row - 1 >= 0 && !collision_grid->grid[row - 1][col] && !is_closed[row - 1][col]) { // NORTH
             Cell *n = &cell_grid[row - 1][col];
             int tentative_g = current->g + 1;
             if (tentative_g < n->g) {
@@ -106,7 +116,7 @@ void AStar_getPath(Path *path, const CollisionGrid *collision_grid, Vector2i *fr
             }
         }
 
-        if (row + 1 < ROWS && collision_grid->grid[row + 1][col] && !is_closed[row + 1][col]) { // SOUTH
+        if (row + 1 < ROWS && !collision_grid->grid[row + 1][col] && !is_closed[row + 1][col]) { // SOUTH
             Cell *n = &cell_grid[row + 1][col];
             int tentative_g = current->g + 1;
             if (tentative_g < n->g) {
@@ -119,7 +129,7 @@ void AStar_getPath(Path *path, const CollisionGrid *collision_grid, Vector2i *fr
             }
         }
 
-        if (col - 1 >= 0 && collision_grid->grid[row][col - 1] && !is_closed[row][col - 1]) { // WEST
+        if (col - 1 >= 0 && !collision_grid->grid[row][col - 1] && !is_closed[row][col - 1]) { // WEST
             Cell *n = &cell_grid[row][col - 1];
             int tentative_g = current->g + 1;
             if (tentative_g < n->g) {
@@ -132,7 +142,7 @@ void AStar_getPath(Path *path, const CollisionGrid *collision_grid, Vector2i *fr
             }
         }
 
-        if (col + 1 < COLUMNS && collision_grid->grid[row][col + 1] && !is_closed[row][col + 1]) { // EAST
+        if (col + 1 < COLUMNS && !collision_grid->grid[row][col + 1] && !is_closed[row][col + 1]) { // EAST
             Cell *n = &cell_grid[row][col + 1];
             int tentative_g = current->g + 1;
             if (tentative_g < n->g) {
