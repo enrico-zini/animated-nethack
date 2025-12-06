@@ -13,6 +13,7 @@
 // COLORS
 #define WHITE 1.0f, 1.0f, 1.0f
 #define BLACK 0.0f, 0.0f, 0.0f
+#define RED 1.0f, 0.0f, 0.0f
 
 int windowWidth = GRID_WIDTH;
 int windowHeight = GRID_HEIGHT;
@@ -42,6 +43,7 @@ AnimationController ac;
 
 // MEASURES
 int last_frame_ms = 0;
+Path path;
 
 void drawTile(Vector2f *v) {
     glColor3f(WHITE);
@@ -88,12 +90,25 @@ void showFPS() {
     }
 }
 
+void drawPath() {        
+    glColor3f(RED);
+    glBegin(GL_LINES);
+    for (int i = 0; i < path.count - 1; i++) {
+        Vector2i from = path.nodes[i];
+        Vector2i to = path.nodes[i + 1];
+        glVertex2f((from.x + 0.5f) * TILE_SIZE, (collision_grid.rows - from.y - 0.5f) * TILE_SIZE);
+        glVertex2f((to.x + 0.5f) * TILE_SIZE, (collision_grid.rows - to.y - 0.5f) * TILE_SIZE);
+    }
+    glEnd();
+}
+
 void drawScreen() {
     drawGrid();
     size_t movable_count = sizeof(movables)/sizeof(Movable *);
     for (size_t i = 0; i < movable_count; i++) {
         drawTile(&movables[i]->current_pos);
     }
+    drawPath();
 }
 
 void display() {
@@ -210,13 +225,13 @@ int main(int argc, char** argv) {
     collision_grid = init_grid_from_file("grid.txt");
 
     Vector2i path_buf[collision_grid.rows * collision_grid.columns];
-    Path path = {
+    path = (Path) {
         .count = 0,
         .nodes = path_buf
     };
-    AStar_getPath(&path, &collision_grid, &(Vector2i){10,15}, &(Vector2i){4,15});
+    AStar_getPath(&path, &collision_grid, &(Vector2i){5,12}, &(Vector2i){10,14});
     
-    printf("FROM(%d,%d) TO(%d,%d)\n", 10, 15, 4, 15);
+    printf("FROM(%d,%d) TO(%d,%d)\n", 5, 12, 10, 14);
     printf("PATH: ");
     for (int i = 0; i < path.count; i++) {
     	printf("[%d,%d] ", path.nodes[i].x, path.nodes[i].y);
